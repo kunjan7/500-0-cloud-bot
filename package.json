@@ -3,7 +3,7 @@
   "version": "25.0.0",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' node bot.js"
   },
   "dependencies": {
     "puppeteer": "^22.0.0"
