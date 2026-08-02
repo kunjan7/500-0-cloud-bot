@@ -1,6 +1,5 @@
 FROM node:18-bullseye-slim
 
-# Install Google Chrome & Xvfb (Fake Display for Render Cloud)
 RUN apt-get update \
     && apt-get install -y wget gnupg xvfb \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -17,5 +16,4 @@ RUN npm install
 
 COPY . .
 
-# Run node bot.js inside virtual framebuffer screen
 CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1280x800x24'", "node", "bot.js"]
