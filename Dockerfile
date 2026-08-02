@@ -1,0 +1,21 @@
+FROM node:18-bullseye-slim
+
+# Install Google Chrome & Xvfb (Fake Display for Render Cloud)
+RUN apt-get update \
+    && apt-get install -y wget gnupg xvfb \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Run node bot.js inside virtual framebuffer screen
+CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1280x800x24'", "node", "bot.js"]
