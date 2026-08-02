@@ -1,6 +1,21 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const http = require('http');
 
+// =============================================================
+// DUMMY HTTP SERVER (Keeps Render Free Tier Web Service Awake)
+// =============================================================
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('500-0 Cloud Bot v25.0 is running 24/7!');
+}).listen(PORT, () => {
+    console.log(`Web server active on port ${PORT} for Render Free Tier.`);
+});
+
+// =============================================================
+// MAIN PUPPETEER BOT RUNNER
+// =============================================================
 async function runBot() {
     console.log("⚡ Starting Ultimate Drafter v25.0 on Render Cloud...");
 
@@ -26,8 +41,8 @@ async function runBot() {
         const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
         const logEntry = `\n==================================================\n[${timestamp}] MATCH COMPLETED:\n${matchData}\n==================================================\n`;
         
-        console.log(logEntry); // Prints to Render Logs
-        fs.appendFileSync('simulation_results.txt', logEntry); // Saves to disk
+        console.log(logEntry); // Prints live to Render Logs
+        fs.appendFileSync('simulation_results.txt', logEntry); // Saves to disk permanently
     });
 
     console.log("Navigating to 500-0.com...");
@@ -43,7 +58,7 @@ async function runBot() {
         let lastPlayerDrafted = null;
         let isWaitingForRestart = false;
 
-        // 1. RANKED PLAYER DATABASE (EXACT TABLE LOOKUP)
+        // 1. RANKED PLAYER DATABASE
         const rankedDatabase = {
             "afghanistan_2020s": ["Rashid Khan", "Mujeeb Ur Rahman", "Rahmanullah Gurbaz"],
             "australia_1990s": ["Shane Warne", "Glenn McGrath", "Michael Slater", "Ricky Ponting", "Mark Waugh"],
@@ -344,7 +359,7 @@ async function runBot() {
             if (!isRunning || isWaitingForRestart) return;
 
             const pageText = document.body.innerText.toLowerCase();
-            const rawText = document.body.innerText; // Used for Data Extraction
+            const rawText = document.body.innerText; // Used for Node data extraction
 
             // STEP 1: INITIAL ENTRY
             if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
@@ -367,7 +382,7 @@ async function runBot() {
             // STEP 3: RESTART / END OF MATCH LOGIC + DATA SAVER
             if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("draft again") || pageText.includes("play again") || pageText.includes("claim your spot")) {
                 
-                // >>> EXTRACT DATA AND SAVE TO DISK <<<
+                // >>> EXTRACT SCORECARD DATA AND SAVE TO DISK <<<
                 const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
                 const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
                 let matchReport = "";
@@ -384,10 +399,10 @@ async function runBot() {
                     log("🏆 WIN/501+ SCORE! Submitting to Leaderboard...");
                     isWaitingForRestart = true;
                     
-                    // Trigger "CLAIM YOUR SPOT"
+                    // Trigger "CLAIM YOUR SPOT" if available
                     findAndClick("claim your spot", false);
                     
-                    // Wait for popup, type name, and submit
+                    // Wait for the popup, type name, and submit
                     setTimeout(() => {
                         const randomNum = Math.floor(1000 + Math.random() * 9000);
                         const username = "KUNJAN" + randomNum;
@@ -399,10 +414,11 @@ async function runBot() {
                             input.dispatchEvent(new Event('change', { bubbles: true }));
                         });
 
+                        // Click submit/post/enter
                         setTimeout(() => {
                             findAndClick("submit", false) || findAndClick("post", false) || findAndClick("enter", false);
                             
-                            // Exact 60s wait requested from original script
+                            // Exact 60s wait requested from original script before playing again
                             setTimeout(() => {
                                 log("60s completed. Starting next...");
                                 resetDraftState();
@@ -461,7 +477,7 @@ async function runBot() {
                 if (spinCount === 1) {
                     if (!has95Plus) {
                         log("Spin 1: No 95+ Rating Found! Reloading...");
-                        location.reload(); // Yes, this works perfectly in Puppeteer!
+                        location.reload(); 
                         return;
                     }
                 }
