@@ -1,6 +1,6 @@
 {
   "name": "500-0-cloud-bot",
-  "version": "1.0.0",
+  "version": "25.0.0",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
