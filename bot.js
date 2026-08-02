@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v27.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v28.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v27.0 (UI Sync Edition) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v28.0 (Smart Targeter) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -36,7 +36,7 @@ async function runBot() {
             '--window-size=1280,800',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--disable-blink-features=AutomationControlled' // Extra stealth
+            '--disable-blink-features=AutomationControlled'
         ]
     });
 
@@ -68,9 +68,8 @@ async function runBot() {
                 let reRollUsed = false;
                 let lastPlayerDrafted = null;
                 let isWaitingForRestart = false;
-                let isTransitioning = false; // Prevents log spam while UI animates
+                let isTransitioning = false; 
 
-                // Helper to pause loop during UI animations
                 function uiPause(ms) {
                     isTransitioning = true;
                     setTimeout(() => isTransitioning = false, ms);
@@ -139,7 +138,7 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v27.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v28.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:160px; font-family:sans-serif;`;
@@ -148,7 +147,7 @@ async function runBot() {
                 function log(actionText) {
                     const actionEl = document.getElementById('bot-action');
                     if (actionEl) actionEl.textContent = actionText;
-                    console.log(`[BOT] ${actionText}`); // PUSHES TO RENDER CONSOLE
+                    console.log(`[BOT] ${actionText}`);
                 }
 
                 function isElementOnTop(element) {
@@ -197,7 +196,8 @@ async function runBot() {
                     }, false);
                 }
 
-                function findAndClick(targetText, exact = true, requireRightSideOnly = false) {
+                // SMART TARGETER: Can strictly look for BUTTONS to avoid clicking random background text
+                function findAndClick(targetText, exact = true, requireRightSideOnly = false, requireButton = false) {
                     targetText = targetText.toLowerCase().trim();
                     const walker = createSafeTreeWalker(document.body);
                     let node;
@@ -208,7 +208,16 @@ async function runBot() {
                         if (!text) continue;
 
                         if ((exact && text === targetText) || (!exact && text.includes(targetText))) {
+                            // Prevent clicking "spinning..." when looking for "spin" button
+                            if (targetText === "spin" && text.includes("spinning")) continue;
+
                             const parent = node.parentElement;
+
+                            if (requireButton) {
+                                const isBtn = parent.tagName === 'BUTTON' || parent.closest('button') || parent.getAttribute('role') === 'button';
+                                if (!isBtn) continue;
+                            }
+
                             if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
                                 const rect = parent.getBoundingClientRect();
                                 const elementCenterX = rect.left + (rect.width / 2);
@@ -287,7 +296,8 @@ async function runBot() {
                     while ((node = walker.nextNode())) {
                         const text = node.nodeValue.trim();
                         const num = parseInt(text);
-                        if (!isNaN(num) && num >= 50 && num <= 99 && text === num.toString()) {
+                        // FIXED: Allowed all numbers 0-99 so the bot never freezes on a bad team
+                        if (!isNaN(num) && num >= 0 && num <= 99 && text === num.toString()) {
                             const parent = node.parentElement;
                             if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
                                 const rect = parent.getBoundingClientRect();
@@ -331,28 +341,27 @@ async function runBot() {
                 // MAIN LOOP - HIGH SPEED (400ms) with UI SYNC
                 // ===============================================
                 setInterval(() => {
-                    // Do not run loop if waiting on UI animations or restarts
                     if (!isRunning || isWaitingForRestart || isTransitioning) return;
 
                     const pageText = document.body.innerText.toLowerCase();
                     const rawText = document.body.innerText;
 
-                    // STEP 1: INITIAL ENTRY
+                    // STEP 1: INITIAL ENTRY (Require Button)
                     if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
                         log("Starting New Draft...");
                         resetDraftState();
-                        findAndClick("draft", true); 
+                        findAndClick("draft", false, false, true); 
                         uiPause(800);
                         return;
                     }
 
-                    // STEP 2: SKIP TO END & SIMULATE PHASE
-                    if (findAndClick("skip to end", false)) {
+                    // STEP 2: SKIP TO END & SIMULATE PHASE (Require Button)
+                    if (findAndClick("skip to end", false, false, true)) {
                         log("Skipping to end...");
                         uiPause(800);
                         return;
                     }
-                    if (findAndClick("simulate", true) || findAndClick("simulate", false)) {
+                    if (findAndClick("simulate", false, false, true)) {
                         log("Match simulating...");
                         uiPause(800);
                         return;
@@ -377,7 +386,7 @@ async function runBot() {
                             log("🏆 WIN/501+ SCORE! Submitting to Leaderboard...");
                             isWaitingForRestart = true;
                             
-                            findAndClick("claim your spot", false);
+                            findAndClick("claim your spot", false, false, true);
                             
                             setTimeout(() => {
                                 const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -391,15 +400,14 @@ async function runBot() {
                                 });
 
                                 setTimeout(() => {
-                                    findAndClick("submit", false) || findAndClick("post", false) || findAndClick("enter", false);
+                                    findAndClick("submit", false, false, true) || findAndClick("post", false, false, true) || findAndClick("enter", false, false, true);
                                     
                                     setTimeout(() => {
                                         log("60s completed. Starting next...");
                                         resetDraftState();
-                                        // EXACT=FALSE reverted for absolute reliability
-                                        if (!findAndClick("draft again", false)) {
-                                            if (!findAndClick("play again", false)) {
-                                                findAndClick("draft", false);
+                                        if (!findAndClick("draft again", false, false, true)) {
+                                            if (!findAndClick("play again", false, false, true)) {
+                                                findAndClick("draft", false, false, true);
                                             }
                                         }
                                         isWaitingForRestart = false;
@@ -409,14 +417,14 @@ async function runBot() {
                             }, 1500);
 
                         } else {
-                            log("Drafting again..."); // Updated text
+                            log("Drafting again...");
                             isWaitingForRestart = true; 
                             resetDraftState();
                             
-                            // EXACT=FALSE reverted for absolute reliability
-                            if (!findAndClick("draft again", false)) {
-                                if (!findAndClick("play again", false)) {
-                                    findAndClick("draft", false); 
+                            // REQUIRE BUTTON is true so it never clicks plain text
+                            if (!findAndClick("draft again", false, false, true)) {
+                                if (!findAndClick("play again", false, false, true)) {
+                                    findAndClick("draft", false, false, true); 
                                 }
                             }
                             
@@ -428,35 +436,35 @@ async function runBot() {
                     }
 
                     // STEP 4: BATTING POSITION POPUP
-                    if (pageText.includes("choose a batting position") || pageText.includes("choose batting position")) {
+                    if (pageText.includes("batting position")) { // Made broader to catch all variants
                         let clickedPosition = false;
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
-                            log(`Pos for ${lastPlayerDrafted}`);
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
                                 if (clickPositionNumber(pos)) {
+                                    log(`Pos ${pos} for ${lastPlayerDrafted}`);
                                     clickedPosition = true;
-                                    uiPause(600); // UI pause to let popup close
+                                    uiPause(600);
                                     break;
                                 }
                             }
                         }
                         if (!clickedPosition) {
-                            log("Selecting next available position...");
                             for (let i = 1; i <= 11; i++) {
                                 if (clickPositionNumber(i)) {
-                                    uiPause(600); // UI pause to let popup close
+                                    log(`Selected Pos ${i} as fallback`);
+                                    uiPause(600);
                                     break;
                                 }
                             }
                         }
-                        return;
+                        return; 
                     }
 
-                    // STEP 5: SPIN PHASE
-                    if (findAndClick("spin", true)) {
+                    // STEP 5: SPIN PHASE (Require Button = true)
+                    if (findAndClick("spin", false, false, true)) {
                         spinCount++;
                         log(`Spin #${spinCount} Initiated`);
-                        uiPause(800); // Wait for players to appear
+                        uiPause(800);
                         return;
                     }
 
@@ -464,42 +472,39 @@ async function runBot() {
                     if (pageText.includes("pow") || pageText.includes("bat") || pageText.includes("bwl")) {
                         const has90Plus = hasPlayerRating90OrAbove();
 
-                        // --- RE-ROLL LOGIC (Applies from Spin 2 onwards) ---
                         if (spinCount >= 2 && !reRollUsed) {
                             if (!has90Plus) {
                                 log("No 90+ Player Found. Executing RE-ROLL...");
                                 reRollUsed = true;
-                                if (findAndClick("re-roll", false) || findAndClick("reroll", false)) {
-                                    uiPause(800); // Wait for new players
+                                if (findAndClick("re-roll", false, false, true) || findAndClick("reroll", false, false, true)) {
+                                    uiPause(800);
                                     return;
                                 }
                             }
                         }
 
-                        // --- EXACT TEAM LOOKUP ---
                         const teamKey = detectCurrentTeamEraKey();
                         if (teamKey && rankedDatabase[teamKey]) {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
-                                if (findAndClick(playerName, true, true)) {
-                                    log(`Drafted Rank ${i+1}: ${playerName}`);
+                                if (findAndClick(playerName, true, true, false)) {
+                                    log(`Drafted VIP: ${playerName}`);
                                     lastPlayerDrafted = playerName;
-                                    uiPause(800); // Stops log spam while waiting for Position Popup
+                                    uiPause(800); 
                                     return;
                                 }
                             }
                         }
 
-                        // --- FALLBACK ---
-                        log("Drafting by rating...");
+                        // Only triggers the log if it ACTUALLY clicks a player
                         if (draftHighestAvailableRating()) {
-                            uiPause(800); // Stops log spam while waiting for Position Popup
+                            uiPause(800); 
                             return;
                         }
                     }
 
-                }, 400); // Lightning Speed
+                }, 400); // 400ms High Speed
 
             }, 1000); 
         });
@@ -515,4 +520,3 @@ async function runBot() {
 }
 
 runBot();
-
