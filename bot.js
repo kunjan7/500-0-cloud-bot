@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v26.2 is running 24/7!');
+    res.end('500-0 Cloud Bot v26.4 (High-Speed) is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v26.2 on Render...");
+    console.log("⚡ Starting Ultimate Drafter v26.4 (High-Speed) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -132,7 +132,7 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v26.2</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v26.4</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:160px; font-family:sans-serif;`;
@@ -318,40 +318,47 @@ async function runBot() {
                     isWaitingForRestart = false;
                 }
 
-                log("Bot injected and running!");
+                log("Bot injected and running at High Speed!");
 
+                // ===============================================
+                // MAIN LOOP - INCREASED SPEED (400ms)
+                // ===============================================
                 setInterval(() => {
                     if (!isRunning || isWaitingForRestart) return;
 
                     const pageText = document.body.innerText.toLowerCase();
                     const rawText = document.body.innerText;
 
+                    // STEP 1: INITIAL ENTRY (EXACT match to avoid misfires)
                     if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
                         log("Starting New Draft...");
                         resetDraftState();
-                        findAndClick("draft", true);
+                        findAndClick("draft", true); 
                         return;
                     }
 
+                    // STEP 2: SKIP TO END & SIMULATE PHASE
                     if (findAndClick("skip to end", false)) {
                         log("Skipping to end...");
                         return;
                     }
-                    if (findAndClick("simulate", false)) {
+                    if (findAndClick("simulate", true) || findAndClick("simulate", false)) {
                         log("Match simulating...");
                         return;
                     }
 
+                    // STEP 3: RESTART / END OF MATCH LOGIC
                     if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("draft again") || pageText.includes("play again") || pageText.includes("claim your spot")) {
                         
-                        const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
-                        const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
-                        let matchReport = "";
-                        if (scoreMatch) matchReport += `SCORE: ${scoreMatch[0]}`;
-                        if (oversMatch) matchReport += ` in ${oversMatch[0]}`;
-                        matchReport += `\n\nTEAM SNAPSHOT:\n` + rawText.substring(0, 400).replace(/\n\n+/g, '\n');
-                        
-                        window.saveScorecardToDisk(matchReport);
+                        if (!isWaitingForRestart) {
+                            const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
+                            const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
+                            let matchReport = "";
+                            if (scoreMatch) matchReport += `SCORE: ${scoreMatch[0]}`;
+                            if (oversMatch) matchReport += ` in ${oversMatch[0]}`;
+                            matchReport += `\n\nTEAM SNAPSHOT:\n` + rawText.substring(0, 400).replace(/\n\n+/g, '\n');
+                            window.saveScorecardToDisk(matchReport);
+                        }
 
                         const wonMatch = checkWinCondition();
 
@@ -378,7 +385,12 @@ async function runBot() {
                                     setTimeout(() => {
                                         log("60s completed. Starting next...");
                                         resetDraftState();
-                                        if (!findAndClick("draft again", false)) findAndClick("play again", false);
+                                        // EXACT matches only
+                                        if (!findAndClick("draft again", true)) {
+                                            if (!findAndClick("play again", true)) {
+                                                findAndClick("draft", true);
+                                            }
+                                        }
                                         isWaitingForRestart = false;
                                     }, 60000);
 
@@ -387,12 +399,24 @@ async function runBot() {
 
                         } else {
                             log("Instantly restarting...");
+                            isWaitingForRestart = true; 
                             resetDraftState();
-                            if (!findAndClick("draft again", false)) findAndClick("play again", false);
+                            
+                            // EXACT matches only so it doesn't click random text
+                            if (!findAndClick("draft again", true)) {
+                                if (!findAndClick("play again", true)) {
+                                    findAndClick("draft", true); 
+                                }
+                            }
+                            
+                            setTimeout(() => {
+                                isWaitingForRestart = false;
+                            }, 1000); // Shorter wait to resume
                         }
                         return;
                     }
 
+                    // STEP 4: BATTING POSITION POPUP
                     if (pageText.includes("choose a batting position") || pageText.includes("choose batting position")) {
                         let clickedPosition = false;
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
@@ -413,12 +437,14 @@ async function runBot() {
                         return;
                     }
 
+                    // STEP 5: SPIN PHASE
                     if (findAndClick("spin", true)) {
                         spinCount++;
                         log(`Spin #${spinCount} Initiated`);
                         return;
                     }
 
+                    // STEP 6: DRAFTING / RE-ROLL LOGIC
                     if (pageText.includes("pow") || pageText.includes("bat") || pageText.includes("bwl")) {
                         const has90Plus = hasPlayerRating90OrAbove();
 
@@ -450,16 +476,14 @@ async function runBot() {
                         draftHighestAvailableRating();
                     }
 
-                }, 1500);
+                }, 400); // Speed increased from 1500ms to 400ms
 
-            }, 2000); 
+            }, 1000); 
         });
     });
 
     console.log("Navigating to 500-0.com...");
     try {
-        // We set timeout to 0 (infinite) to prevent the fatal crash, 
-        // but we only wait for the very first bit of the page to load before injecting.
         await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 0 });
         console.log("Page base loaded. Bot script injected and running.");
     } catch (e) {
