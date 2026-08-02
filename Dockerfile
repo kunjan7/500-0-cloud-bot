@@ -1,5 +1,6 @@
 FROM node:18-bullseye-slim
 
+# Install Google Chrome & Xvfb (Virtual Framebuffer Display for Render Cloud)
 RUN apt-get update \
     && apt-get install -y wget gnupg xvfb \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -16,4 +17,5 @@ RUN npm install
 
 COPY . .
 
-CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1280x800x24'", "node", "bot.js"]
+# Launch Chrome inside a 1280x800 Virtual Screen using raw Shell Format
+CMD xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" node bot.js
