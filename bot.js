@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v26.1 is running 24/7!');
+    res.end('500-0 Cloud Bot v26.2 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v26.1 (No-Reload Edition) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v26.2 on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -132,7 +132,7 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v26.1</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v26.2</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:160px; font-family:sans-serif;`;
@@ -457,15 +457,13 @@ async function runBot() {
     });
 
     console.log("Navigating to 500-0.com...");
-    let retries = 0;
-    while(retries < 5) {
-        try {
-            await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 90000 });
-            break;
-        } catch (e) {
-            console.log("Navigation timeout, retrying...", e.message);
-            retries++;
-        }
+    try {
+        // We set timeout to 0 (infinite) to prevent the fatal crash, 
+        // but we only wait for the very first bit of the page to load before injecting.
+        await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 0 });
+        console.log("Page base loaded. Bot script injected and running.");
+    } catch (e) {
+        console.log("Warning during navigation:", e.message);
     }
 }
 
