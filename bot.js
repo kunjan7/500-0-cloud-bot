@@ -3,14 +3,20 @@ const fs = require('fs');
 const http = require('http');
 
 // =============================================================
-// DUMMY HTTP SERVER (Keeps Render Free Tier Web Service Awake)
+// DUMMY HTTP SERVER (Safe Port Binding for Render Free Tier)
 // =============================================================
-const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => {
+const PORT = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('500-0 Cloud Bot v25.0 is running 24/7!');
-}).listen(PORT, () => {
-    console.log(`Web server active on port ${PORT} for Render Free Tier.`);
+});
+
+server.on('error', (err) => {
+    console.log('HTTP Server notice:', err.message);
+});
+
+server.listen(PORT, () => {
+    console.log(`Web server successfully bound to port ${PORT} for Render.`);
 });
 
 // =============================================================
@@ -20,7 +26,7 @@ async function runBot() {
     console.log("⚡ Starting Ultimate Drafter v25.0 on Render Cloud...");
 
     const browser = await puppeteer.launch({
-        headless: false, // Xvfb will handle the virtual screen on Render
+        headless: false, // Xvfb virtual screen
         executablePath: '/usr/bin/google-chrome-stable',
         args: [
             '--no-sandbox',
@@ -46,7 +52,11 @@ async function runBot() {
     });
 
     console.log("Navigating to 500-0.com...");
-    await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    try {
+        await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } catch (e) {
+        console.log("Navigation warning, proceeding anyway:", e.message);
+    }
 
     // ==========================================
     // INJECTING EXACT TAMPERMONKEY LOGIC v25.0
@@ -359,7 +369,7 @@ async function runBot() {
             if (!isRunning || isWaitingForRestart) return;
 
             const pageText = document.body.innerText.toLowerCase();
-            const rawText = document.body.innerText; // Used for Node data extraction
+            const rawText = document.body.innerText;
 
             // STEP 1: INITIAL ENTRY
             if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
@@ -382,7 +392,6 @@ async function runBot() {
             // STEP 3: RESTART / END OF MATCH LOGIC + DATA SAVER
             if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("draft again") || pageText.includes("play again") || pageText.includes("claim your spot")) {
                 
-                // >>> EXTRACT SCORECARD DATA AND SAVE TO DISK <<<
                 const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
                 const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
                 let matchReport = "";
@@ -391,7 +400,6 @@ async function runBot() {
                 matchReport += `\n\nTEAM SNAPSHOT:\n` + rawText.substring(0, 400).replace(/\n\n+/g, '\n');
                 
                 window.saveScorecardToDisk(matchReport);
-                // >>> END DATA EXTRACTION <<<
 
                 const wonMatch = checkWinCondition();
 
@@ -399,10 +407,8 @@ async function runBot() {
                     log("🏆 WIN/501+ SCORE! Submitting to Leaderboard...");
                     isWaitingForRestart = true;
                     
-                    // Trigger "CLAIM YOUR SPOT" if available
                     findAndClick("claim your spot", false);
                     
-                    // Wait for the popup, type name, and submit
                     setTimeout(() => {
                         const randomNum = Math.floor(1000 + Math.random() * 9000);
                         const username = "KUNJAN" + randomNum;
@@ -414,11 +420,9 @@ async function runBot() {
                             input.dispatchEvent(new Event('change', { bubbles: true }));
                         });
 
-                        // Click submit/post/enter
                         setTimeout(() => {
                             findAndClick("submit", false) || findAndClick("post", false) || findAndClick("enter", false);
                             
-                            // Exact 60s wait requested from original script before playing again
                             setTimeout(() => {
                                 log("60s completed. Starting next...");
                                 resetDraftState();
@@ -473,7 +477,6 @@ async function runBot() {
                 const has95Plus = hasPlayerRating95OrAbove();
                 const has90Plus = hasPlayerRating90OrAbove();
 
-                // --- FIRST SPIN RULE ---
                 if (spinCount === 1) {
                     if (!has95Plus) {
                         log("Spin 1: No 95+ Rating Found! Reloading...");
@@ -482,7 +485,6 @@ async function runBot() {
                     }
                 }
 
-                // --- SECOND SPIN RULE ---
                 if (spinCount >= 2 && !reRollUsed) {
                     if (!has90Plus) {
                         log("No 90+ Player Found. Executing RE-ROLL...");
@@ -493,7 +495,6 @@ async function runBot() {
                     }
                 }
 
-                // --- PLAYER SELECTION ---
                 const teamKey = detectCurrentTeamEraKey();
                 if (teamKey && rankedDatabase[teamKey]) {
                     const rankedList = rankedDatabase[teamKey];
@@ -507,7 +508,6 @@ async function runBot() {
                     }
                 }
 
-                // --- FALLBACK ---
                 log("Drafting by rating...");
                 if (draftHighestAvailableRating()) {
                     return;
