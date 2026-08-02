@@ -46,7 +46,7 @@ async function runBot() {
     });
 
     console.log("Navigating to 500-0.com...");
-    await page.goto('https://500-0.com', { waitUntil: 'networkidle2' });
+    await page.goto('https://500-0.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     // ==========================================
     // INJECTING EXACT TAMPERMONKEY LOGIC v25.0
