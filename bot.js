@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v28.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v28.1 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v28.0 (Smart Targeter) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v28.1 (Anti-Crash Edition) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -138,7 +138,7 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v28.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v28.1</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:160px; font-family:sans-serif;`;
@@ -147,7 +147,7 @@ async function runBot() {
                 function log(actionText) {
                     const actionEl = document.getElementById('bot-action');
                     if (actionEl) actionEl.textContent = actionText;
-                    console.log(`[BOT] ${actionText}`);
+                    console.log(`[BOT] ${actionText}`); 
                 }
 
                 function isElementOnTop(element) {
@@ -196,8 +196,8 @@ async function runBot() {
                     }, false);
                 }
 
-                // SMART TARGETER: Can strictly look for BUTTONS to avoid clicking random background text
-                function findAndClick(targetText, exact = true, requireRightSideOnly = false, requireButton = false) {
+                // REMOVED "requireButton" flag. Now works with all HTML tags flawlessly.
+                function findAndClick(targetText, exact = true, requireRightSideOnly = false) {
                     targetText = targetText.toLowerCase().trim();
                     const walker = createSafeTreeWalker(document.body);
                     let node;
@@ -208,15 +208,9 @@ async function runBot() {
                         if (!text) continue;
 
                         if ((exact && text === targetText) || (!exact && text.includes(targetText))) {
-                            // Prevent clicking "spinning..." when looking for "spin" button
                             if (targetText === "spin" && text.includes("spinning")) continue;
 
                             const parent = node.parentElement;
-
-                            if (requireButton) {
-                                const isBtn = parent.tagName === 'BUTTON' || parent.closest('button') || parent.getAttribute('role') === 'button';
-                                if (!isBtn) continue;
-                            }
 
                             if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
                                 const rect = parent.getBoundingClientRect();
@@ -296,7 +290,6 @@ async function runBot() {
                     while ((node = walker.nextNode())) {
                         const text = node.nodeValue.trim();
                         const num = parseInt(text);
-                        // FIXED: Allowed all numbers 0-99 so the bot never freezes on a bad team
                         if (!isNaN(num) && num >= 0 && num <= 99 && text === num.toString()) {
                             const parent = node.parentElement;
                             if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
@@ -328,11 +321,11 @@ async function runBot() {
                     return null;
                 }
 
+                // CRITICAL FIX: isWaitingForRestart is NO LONGER wiped here. It survives!
                 function resetDraftState() {
                     spinCount = 0;
                     reRollUsed = false;
                     lastPlayerDrafted = null;
-                    isWaitingForRestart = false;
                 }
 
                 log("Bot injected and running at High Speed!");
@@ -346,22 +339,23 @@ async function runBot() {
                     const pageText = document.body.innerText.toLowerCase();
                     const rawText = document.body.innerText;
 
-                    // STEP 1: INITIAL ENTRY (Require Button)
+                    // STEP 1: INITIAL ENTRY
                     if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
                         log("Starting New Draft...");
                         resetDraftState();
-                        findAndClick("draft", false, false, true); 
+                        isWaitingForRestart = false; // Safely set here on fresh launch
+                        findAndClick("draft", true); 
                         uiPause(800);
                         return;
                     }
 
-                    // STEP 2: SKIP TO END & SIMULATE PHASE (Require Button)
-                    if (findAndClick("skip to end", false, false, true)) {
+                    // STEP 2: SKIP TO END & SIMULATE PHASE
+                    if (findAndClick("skip to end", false)) {
                         log("Skipping to end...");
                         uiPause(800);
                         return;
                     }
-                    if (findAndClick("simulate", false, false, true)) {
+                    if (findAndClick("simulate", true) || findAndClick("simulate", false)) {
                         log("Match simulating...");
                         uiPause(800);
                         return;
@@ -386,7 +380,7 @@ async function runBot() {
                             log("🏆 WIN/501+ SCORE! Submitting to Leaderboard...");
                             isWaitingForRestart = true;
                             
-                            findAndClick("claim your spot", false, false, true);
+                            findAndClick("claim your spot", false);
                             
                             setTimeout(() => {
                                 const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -400,14 +394,14 @@ async function runBot() {
                                 });
 
                                 setTimeout(() => {
-                                    findAndClick("submit", false, false, true) || findAndClick("post", false, false, true) || findAndClick("enter", false, false, true);
+                                    findAndClick("submit", false) || findAndClick("post", false) || findAndClick("enter", false);
                                     
                                     setTimeout(() => {
                                         log("60s completed. Starting next...");
                                         resetDraftState();
-                                        if (!findAndClick("draft again", false, false, true)) {
-                                            if (!findAndClick("play again", false, false, true)) {
-                                                findAndClick("draft", false, false, true);
+                                        if (!findAndClick("draft again", false)) {
+                                            if (!findAndClick("play again", false)) {
+                                                findAndClick("draft", true);
                                             }
                                         }
                                         isWaitingForRestart = false;
@@ -421,22 +415,22 @@ async function runBot() {
                             isWaitingForRestart = true; 
                             resetDraftState();
                             
-                            // REQUIRE BUTTON is true so it never clicks plain text
-                            if (!findAndClick("draft again", false, false, true)) {
-                                if (!findAndClick("play again", false, false, true)) {
-                                    findAndClick("draft", false, false, true); 
+                            if (!findAndClick("draft again", false)) {
+                                if (!findAndClick("play again", false)) {
+                                    findAndClick("draft", true); 
                                 }
                             }
                             
+                            // Safe timeout. Gives time to click, then resumes scanning.
                             setTimeout(() => {
                                 isWaitingForRestart = false;
-                            }, 1000); 
+                            }, 1500); 
                         }
                         return;
                     }
 
                     // STEP 4: BATTING POSITION POPUP
-                    if (pageText.includes("batting position")) { // Made broader to catch all variants
+                    if (pageText.includes("batting position")) { 
                         let clickedPosition = false;
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
@@ -460,8 +454,8 @@ async function runBot() {
                         return; 
                     }
 
-                    // STEP 5: SPIN PHASE (Require Button = true)
-                    if (findAndClick("spin", false, false, true)) {
+                    // STEP 5: SPIN PHASE
+                    if (findAndClick("spin", true)) {
                         spinCount++;
                         log(`Spin #${spinCount} Initiated`);
                         uiPause(800);
@@ -476,7 +470,7 @@ async function runBot() {
                             if (!has90Plus) {
                                 log("No 90+ Player Found. Executing RE-ROLL...");
                                 reRollUsed = true;
-                                if (findAndClick("re-roll", false, false, true) || findAndClick("reroll", false, false, true)) {
+                                if (findAndClick("re-roll", false) || findAndClick("reroll", false)) {
                                     uiPause(800);
                                     return;
                                 }
@@ -488,7 +482,7 @@ async function runBot() {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
-                                if (findAndClick(playerName, true, true, false)) {
+                                if (findAndClick(playerName, true, true)) {
                                     log(`Drafted VIP: ${playerName}`);
                                     lastPlayerDrafted = playerName;
                                     uiPause(800); 
@@ -497,14 +491,14 @@ async function runBot() {
                             }
                         }
 
-                        // Only triggers the log if it ACTUALLY clicks a player
+                        log("Drafting by rating...");
                         if (draftHighestAvailableRating()) {
                             uiPause(800); 
                             return;
                         }
                     }
 
-                }, 400); // 400ms High Speed
+                }, 400); 
 
             }, 1000); 
         });
