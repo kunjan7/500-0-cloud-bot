@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v30.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v31.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v30.0 (The Ultimate Merger) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v31.0 (Universal Clicker) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -70,13 +70,19 @@ async function runBot() {
                 let isWaitingForRestart = false;
                 let isTransitioning = false; 
 
-                // Pauses the loop briefly to allow website animations to finish
+                // Pauses loop to let UI animate
                 function uiPause(ms) {
                     isTransitioning = true;
                     setTimeout(() => isTransitioning = false, ms);
                 }
 
-                // 1. FIRST SPIN TARGET PLAYERS (RELOAD CONDITION DATABASE)
+                function log(actionText) {
+                    const actionEl = document.getElementById('bot-action');
+                    if (actionEl) actionEl.textContent = actionText;
+                    console.log(`[BOT] ${actionText}`); 
+                }
+
+                // 1. FIRST SPIN TARGET PLAYERS
                 const firstSpinTargets = [
                     "AB de Villiers", "Viv Richards", "Heinrich Klaasen",
                     "Muttiah Muralitharan", "Virat Kohli", "Shane Warne",
@@ -129,15 +135,14 @@ async function runBot() {
                     "Adam Gilchrist": [1, 2, 3], "Chris Gayle": [1, 2], "Babar Azam": [1, 3],
                     "Sanath Jayasuriya": [1, 2], "David Warner": [2, 1], "Hashim Amla": [1],
                     "Saeed Anwar": [1], "Martin Guptill": [1], "Pathum Nissanka": [1],
-                    "Virat Kohli": [3, 2], "Jonny Bairstow": [2],
-                    "Brian Lara": [4, 2, 3], "Viv Richards": [4, 3], "AB de Villiers": [5, 4, 3],
-                    "Heinrich Klaasen": [6, 5, 4], "Jos Buttler": [6, 7, 5], "Nicholas Pooran": [6, 5],
-                    "MS Dhoni": [7, 6, 5], "Glenn Maxwell": [7, 6], "Michael Bevan": [6, 7],
-                    "Shahid Afridi": [7, 6], "Lance Klusener": [7, 6], "David Miller": [7],
-                    "Chris Cairns": [7], "Glenn Phillips": [7], "Imran Khan": [7],
-                    "Shaun Pollock": [7], "Wanindu Hasaranga": [7],
-                    "Wasim Akram": [8], "Shane Warne": [8, 10, 9], "Rashid Khan": [9, 7],
-                    "Malcolm Marshall": [8, 10, 9], "Mitchell Starc": [8, 9, 10, 11],
+                    "Virat Kohli": [3, 2], "Jonny Bairstow": [2], "Brian Lara": [4, 2, 3], 
+                    "Viv Richards": [4, 3], "AB de Villiers": [5, 4, 3], "Heinrich Klaasen": [6, 5, 4], 
+                    "Jos Buttler": [6, 7, 5], "Nicholas Pooran": [6, 5], "MS Dhoni": [7, 6, 5], 
+                    "Glenn Maxwell": [7, 6], "Michael Bevan": [6, 7], "Shahid Afridi": [7, 6], 
+                    "Lance Klusener": [7, 6], "David Miller": [7], "Chris Cairns": [7], 
+                    "Glenn Phillips": [7], "Imran Khan": [7], "Shaun Pollock": [7], 
+                    "Wanindu Hasaranga": [7], "Wasim Akram": [8], "Shane Warne": [8, 10, 9], 
+                    "Rashid Khan": [9, 7], "Malcolm Marshall": [8, 10, 9], "Mitchell Starc": [8, 9, 10, 11],
                     "Shane Bond": [9, 8, 10, 11], "Saeed Ajmal": [8, 11], "Dale Steyn": [9, 10, 8],
                     "Shoaib Akhtar": [11, 9, 10, 8], "Curtly Ambrose": [11, 9, 8], "Shaheen Afridi": [9, 11],
                     "Muttiah Muralitharan": [11, 10, 8], "Lasith Malinga": [11, 8], "Trent Boult": [10, 11],
@@ -147,17 +152,11 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v30.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v31.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:170px; font-family:sans-serif;`;
                 document.body.appendChild(ui);
-
-                function log(actionText) {
-                    const actionEl = document.getElementById('bot-action');
-                    if (actionEl) actionEl.textContent = actionText;
-                    console.log(`[BOT] ${actionText}`); 
-                }
 
                 function triggerPixelClick(element) {
                     const target = element.closest('button, [role="button"]') || element;
@@ -172,56 +171,41 @@ async function runBot() {
                     return true;
                 }
 
-                function isRowDisabled(element) {
-                    let node = element;
-                    let depth = 0;
-                    while (node && node.tagName !== 'BODY' && depth < 12) {
-                        const text = (node.textContent || "").toLowerCase().trim();
-                        if (text.length > 300) break;
-                        if (text.includes("(picked)")) return true;
-                        const style = window.getComputedStyle(node);
-                        if (parseFloat(style.opacity) < 1 || style.pointerEvents === 'none') return true;
-                        node = node.parentElement;
-                        depth++;
-                    }
-                    return false;
-                }
-
-                // AGGRESSIVE CLICKER: Directly scans all HTML nodes for precise text or symbols (Perfect for the ⟳ Re-Roll Button)
-                function aggressiveClick(textTarget) {
-                    const elements = Array.from(document.querySelectorAll('button, div, span, a'));
-                    for (let el of elements) {
-                        const text = (el.textContent || '').toLowerCase().trim();
-                        if (text.includes(textTarget.toLowerCase()) && el.children.length === 0) {
-                            const rect = el.getBoundingClientRect();
-                            if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none') {
-                                triggerPixelClick(el);
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
-
-                function findAndClick(targetText, exact = true, requireRightSideOnly = false) {
-                    targetText = targetText.toLowerCase().trim();
-                    const elements = Array.from(document.querySelectorAll('*'));
+                // ==============================================================
+                // V31.0 UNIVERSAL CLICK ENGINE: Fixes Re-Roll & Position Issues
+                // ==============================================================
+                function smartClick(text, exactMatch = false, rightSideOnly = false) {
+                    text = text.toLowerCase().trim();
+                    const elements = Array.from(document.querySelectorAll('button, div, span, p, a, li'));
                     const screenMiddle = window.innerWidth / 2;
+                    
+                    // Iterate backwards (deepest nested elements clicked first)
+                    for (let i = elements.length - 1; i >= 0; i--) {
+                        const el = elements[i];
+                        if (el.closest('#bot-ui-container')) continue;
+                        
+                        const elText = (el.textContent || '').toLowerCase().trim();
+                        if (!elText) continue;
 
-                    for (let el of elements) {
-                        if (el.children.length > 0) continue; 
-                        const text = (el.textContent || '').toLowerCase().trim();
-                        if (!text) continue;
+                        const isMatch = exactMatch ? elText === text : elText.includes(text);
+                        if (isMatch) {
+                            // Don't mistake "spinning" for "spin" button
+                            if (text === "spin" && elText.includes("spinning")) continue;
+                            // Ignore disabled/picked player cards completely
+                            if (elText.includes("(picked)")) continue;
 
-                        if ((exact && text === targetText) || (!exact && text.includes(targetText))) {
-                            if (targetText === "spin" && text.includes("spinning")) continue;
-
+                            const style = window.getComputedStyle(el);
                             const rect = el.getBoundingClientRect();
-                            if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
-                                if (requireRightSideOnly) {
-                                    if (rect.left + (rect.width / 2) < screenMiddle) continue;
-                                    if (isRowDisabled(el)) continue;
+                            
+                            if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+                                if (rightSideOnly && (rect.left + (rect.width / 2) < screenMiddle)) continue;
+
+                                // Prevent clicking parent layers that are disabled
+                                if (el.parentElement) {
+                                    const parentStyle = window.getComputedStyle(el.parentElement);
+                                    if (parentStyle.pointerEvents === 'none' || parseFloat(parentStyle.opacity) < 1) continue;
                                 }
+
                                 triggerPixelClick(el);
                                 return true;
                             }
@@ -230,40 +214,13 @@ async function runBot() {
                     return false;
                 }
 
+                // Custom Check for Target Players
                 function isAnyPlayerAvailable(playerList) {
-                    const elements = Array.from(document.querySelectorAll('*'));
-                    const screenMiddle = window.innerWidth / 2;
-
-                    for (let el of elements) {
-                        if (el.children.length > 0) continue;
-                        const text = (el.textContent || '').toLowerCase().trim();
-                        if (!text) continue;
-
-                        for (let player of playerList) {
-                            const target = player.trim().toLowerCase();
-                            if (text === target || text.includes(target)) {
-                                const rect = el.getBoundingClientRect();
-                                if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
-                                    if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(el)) {
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    return false;
-                }
-
-                function clickPositionNumber(targetNumber) {
-                    const elements = Array.from(document.querySelectorAll('*'));
-                    for (let el of elements) {
-                        if (el.children.length > 0) continue;
-                        if (el.textContent.trim() === targetNumber.toString()) {
-                            let modal = el.closest('div');
-                            if (modal && window.getComputedStyle(modal).display !== 'none') {
-                                triggerPixelClick(el);
-                                return true;
-                            }
+                    const pageText = document.body.innerText.toLowerCase();
+                    for (let player of playerList) {
+                        if (pageText.includes(player.toLowerCase())) {
+                            // Verify they are on the right side (available) and not picked
+                            if (smartClick(player, false, true)) return true;
                         }
                     }
                     return false;
@@ -281,20 +238,31 @@ async function runBot() {
                 }
 
                 function draftHighestAvailableRating() {
-                    const elements = Array.from(document.querySelectorAll('*'));
+                    const elements = Array.from(document.querySelectorAll('div, span'));
                     let bestNode = null;
                     let bestRating = -1;
                     const screenMiddle = window.innerWidth / 2;
 
                     for (let el of elements) {
-                        if (el.children.length > 0) continue;
                         const text = (el.textContent || '').trim();
                         const num = parseInt(text);
                         if (!isNaN(num) && num >= 0 && num <= 99 && text === num.toString()) {
                             const rect = el.getBoundingClientRect();
-                            if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
-                                if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(el)) {
-                                    if (num > bestRating) {
+                            const style = window.getComputedStyle(el);
+                            if (rect.width > 0 && rect.height > 0 && style.display !== 'none') {
+                                if (rect.left + (rect.width / 2) >= screenMiddle) {
+                                    
+                                    // Make absolutely sure row is not disabled
+                                    let disabled = false;
+                                    let parent = el;
+                                    for(let i=0; i<4; i++) {
+                                        if(!parent) break;
+                                        if((parent.textContent||'').toLowerCase().includes('(picked)')) disabled = true;
+                                        if(window.getComputedStyle(parent).pointerEvents === 'none') disabled = true;
+                                        parent = parent.parentElement;
+                                    }
+
+                                    if (!disabled && num > bestRating) {
                                         bestRating = num;
                                         bestNode = el;
                                     }
@@ -316,9 +284,7 @@ async function runBot() {
                     const pageText = document.body.innerText.toLowerCase();
                     for (let key of Object.keys(rankedDatabase)) {
                         const parts = key.split('_');
-                        if (pageText.includes(parts[0]) && pageText.includes(parts[1])) {
-                            return key;
-                        }
+                        if (pageText.includes(parts[0]) && pageText.includes(parts[1])) return key;
                     }
                     return null;
                 }
@@ -330,7 +296,7 @@ async function runBot() {
                     isWaitingForRestart = false;
                 }
 
-                log("Bot injected. User TM Logic + 501 Claimer active!");
+                log("Bot injected. Universal Clicker + 501 Claimer active!");
 
                 // ==========================================
                 // 6. MAIN AUTOMATION LOOP
@@ -345,26 +311,25 @@ async function runBot() {
                     if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
                         log("Starting New Draft...");
                         resetDraftState();
-                        findAndClick("draft", true);
+                        smartClick("draft", true);
                         uiPause(800);
                         return;
                     }
 
                     // STEP 2: SKIP TO END & SIMULATE PHASE
-                    if (findAndClick("skip to end", false)) {
+                    if (smartClick("skip to end", false)) {
                         log("Skipping to end...");
                         uiPause(800);
                         return;
                     }
-
-                    if (findAndClick("simulate", false)) {
+                    if (smartClick("simulate", false)) {
                         log("Match simulating...");
                         uiPause(800);
                         return;
                     }
 
-                    // STEP 3: RESTART / END OF MATCH CHECK (INCLUDES 501+ CLAIM LOGIC)
-                    if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("claim your spot") || pageText.includes("play again")) {
+                    // STEP 3: RESTART / END OF MATCH CHECK (WITH 501 CLAIMER)
+                    if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("claim your spot") || pageText.includes("play again") || pageText.includes("draft again")) {
                         
                         const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
                         const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
@@ -381,7 +346,7 @@ async function runBot() {
                             log("🏆 WIN/501+ SCORE! Claiming Spot...");
                             isWaitingForRestart = true;
                             
-                            aggressiveClick("claim your spot");
+                            smartClick("claim your spot", false);
                             
                             setTimeout(() => {
                                 const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -395,13 +360,12 @@ async function runBot() {
                                 });
 
                                 setTimeout(() => {
-                                    aggressiveClick("submit") || aggressiveClick("post") || aggressiveClick("enter");
+                                    smartClick("submit", false) || smartClick("post", false) || smartClick("enter", false);
                                     log("Score submitted. Reloading in 60s...");
                                     
                                     setTimeout(() => {
                                         location.reload(); 
                                     }, 60000);
-
                                 }, 1000);
                             }, 1500);
                         } else {
@@ -409,7 +373,7 @@ async function runBot() {
                             isWaitingForRestart = true; 
                             setTimeout(() => {
                                 location.reload(); 
-                            }, 1000);
+                            }, 1500); // 1.5 seconds wait to clear memory properly
                         }
                         return;
                     }
@@ -419,21 +383,22 @@ async function runBot() {
                         let clickedPosition = false;
 
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
-                            log(`Pos for ${lastPlayerDrafted}`);
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
-                                if (clickPositionNumber(pos)) {
+                                // Passes True to exactMatch so it only clicks the exact number "8"
+                                if (smartClick(pos.toString(), true)) {
+                                    log(`Pos ${pos} selected for ${lastPlayerDrafted}`);
                                     clickedPosition = true;
-                                    uiPause(600);
+                                    uiPause(1000); // Popup needs time to vanish
                                     break;
                                 }
                             }
                         }
 
                         if (!clickedPosition) {
-                            log("Selecting next available position...");
                             for (let i = 1; i <= 11; i++) {
-                                if (clickPositionNumber(i)) {
-                                    uiPause(600);
+                                if (smartClick(i.toString(), true)) {
+                                    log(`Pos ${i} selected as fallback`);
+                                    uiPause(1000);
                                     break;
                                 }
                             }
@@ -442,7 +407,7 @@ async function runBot() {
                     }
 
                     // STEP 5: SPIN PHASE
-                    if (findAndClick("spin", true)) {
+                    if (smartClick("spin", true)) {
                         spinCount++;
                         reRollUsed = false;
                         log(`Spin #${spinCount} Initiated`);
@@ -450,16 +415,15 @@ async function runBot() {
                         return;
                     }
 
-                    // STEP 6: DRAFTING / RE-ROLL / RELOAD LOGIC
+                    // STEP 6: DRAFTING / RE-ROLL LOGIC
                     if (pageText.includes("pow") || pageText.includes("bat") || pageText.includes("bwl")) {
 
-                        // --- FIRST SPIN RULE: Target Player Check ---
+                        // --- FIRST SPIN TARGET ---
                         if (spinCount === 1) {
-                            const foundTargetOnFirstSpin = isAnyPlayerAvailable(firstSpinTargets);
-                            if (!foundTargetOnFirstSpin) {
+                            if (!isAnyPlayerAvailable(firstSpinTargets)) {
                                 log("Spin 1: Target player not found! Reloading...");
                                 isWaitingForRestart = true;
-                                location.reload();
+                                setTimeout(() => { location.reload(); }, 500);
                                 return;
                             }
                         }
@@ -467,16 +431,12 @@ async function runBot() {
                         // --- SPINS 2 TO 11 RE-ROLL RULE ---
                         if (spinCount >= 2 && spinCount <= 11 && !reRollUsed) {
                             const optimalPlayersList = Object.keys(optimalPositions);
-                            const foundOptimalPlayer = isAnyPlayerAvailable(optimalPlayersList);
-
-                            if (!foundOptimalPlayer) {
-                                log("No Optimal Player found. Attempting RE-ROLL...");
-                                // FIXED: Aggressively checks for Unicode symbol and text
-                                const rerollClicked = aggressiveClick("⟳") || aggressiveClick("re-roll") || aggressiveClick("reroll");
-                                
-                                if (rerollClicked) {
+                            if (!isAnyPlayerAvailable(optimalPlayersList)) {
+                                log("No Optimal Player. Attempting RE-ROLL...");
+                                // SmartClick finds "re-roll" regardless of nested ⟳ symbols!
+                                if (smartClick("re-roll", false) || smartClick("reroll", false)) {
                                     reRollUsed = true; 
-                                    uiPause(800);
+                                    uiPause(1000);
                                     return;
                                 }
                             }
@@ -488,10 +448,10 @@ async function runBot() {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
-                                if (optimalPositions[playerName] && findAndClick(playerName, true, true)) {
+                                if (optimalPositions[playerName] && smartClick(playerName, false, true)) {
                                     log(`Drafted Rank ${i+1}: ${playerName}`);
                                     lastPlayerDrafted = playerName;
-                                    uiPause(800);
+                                    uiPause(1000);
                                     return;
                                 }
                             }
@@ -500,23 +460,23 @@ async function runBot() {
                         // --- OPTIMAL FALLBACK ---
                         const optimalPlayersList = Object.keys(optimalPositions);
                         for (let player of optimalPlayersList) {
-                            if (findAndClick(player, true, true)) {
+                            if (smartClick(player, false, true)) {
                                 log(`Drafted Optimal: ${player}`);
                                 lastPlayerDrafted = player;
-                                uiPause(800);
+                                uiPause(1000);
                                 return;
                             }
                         }
 
-                        // --- ULTIMATE FALLBACK: Highest Rating ---
+                        // --- ULTIMATE FALLBACK ---
                         log("Drafting by highest rating fallback...");
                         if (draftHighestAvailableRating()) {
-                            uiPause(800);
+                            uiPause(1000);
                             return;
                         }
                     }
 
-                }, 400); // HIGH SPEED LOOP
+                }, 400); 
 
             }, 2000); 
         });
