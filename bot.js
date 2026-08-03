@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v31.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v32.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v31.0 (Universal Clicker) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v32.0 (The Juggernaut Engine) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -58,7 +58,7 @@ async function runBot() {
     });
 
     // ==========================================
-    // INJECTING USER'S EXACT TM LOGIC + 501 CLAIMER
+    // INJECTING UNSTOPPABLE TM LOGIC
     // ==========================================
     await page.evaluateOnNewDocument(() => {
         window.addEventListener('load', () => {
@@ -70,7 +70,11 @@ async function runBot() {
                 let isWaitingForRestart = false;
                 let isTransitioning = false; 
 
-                // Pauses loop to let UI animate
+                // --- V32.0 UNSTOPPABLE STATE TRACKERS ---
+                let idleLoops = 0; 
+                let playerAttempts = {};
+                let positionAttempts = {};
+
                 function uiPause(ms) {
                     isTransitioning = true;
                     setTimeout(() => isTransitioning = false, ms);
@@ -152,13 +156,14 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v31.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v32.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:170px; font-family:sans-serif;`;
                 document.body.appendChild(ui);
 
                 function triggerPixelClick(element) {
+                    idleLoops = 0; // RESET IDLE TIMER ON PHYSICAL CLICK
                     const target = element.closest('button, [role="button"]') || element;
                     const rect = target.getBoundingClientRect();
                     const x = rect.left + (rect.width / 2);
@@ -171,15 +176,47 @@ async function runBot() {
                     return true;
                 }
 
-                // ==============================================================
-                // V31.0 UNIVERSAL CLICK ENGINE: Fixes Re-Roll & Position Issues
-                // ==============================================================
+                // UPGRADED GREY-OUT DETECTION: Catches Grayscale CSS & Reduced Opacity
+                function isRowDisabled(element) {
+                    let node = element;
+                    let depth = 0;
+                    while (node && node.tagName !== 'BODY' && depth < 12) {
+                        const text = (node.textContent || "").toLowerCase().trim();
+                        if (text.length > 300) break;
+                        if (text.includes("(picked)")) return true;
+
+                        const style = window.getComputedStyle(node);
+                        if (parseFloat(style.opacity) < 0.9 || style.pointerEvents === 'none') return true;
+                        if (style.filter && (style.filter.includes('grayscale') || style.filter.includes('contrast'))) return true;
+                        if (node.classList && (node.classList.contains('disabled') || node.classList.contains('picked') || node.classList.contains('greyed'))) return true;
+                        if (node.getAttribute('disabled') !== null) return true;
+
+                        node = node.parentElement;
+                        depth++;
+                    }
+                    return false;
+                }
+
+                function aggressiveClick(textTarget) {
+                    const elements = Array.from(document.querySelectorAll('button, div, span, a'));
+                    for (let el of elements) {
+                        const text = (el.textContent || '').toLowerCase().trim();
+                        if (text.includes(textTarget.toLowerCase()) && el.children.length === 0) {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none') {
+                                triggerPixelClick(el);
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+
                 function smartClick(text, exactMatch = false, rightSideOnly = false) {
                     text = text.toLowerCase().trim();
                     const elements = Array.from(document.querySelectorAll('button, div, span, p, a, li'));
                     const screenMiddle = window.innerWidth / 2;
                     
-                    // Iterate backwards (deepest nested elements clicked first)
                     for (let i = elements.length - 1; i >= 0; i--) {
                         const el = elements[i];
                         if (el.closest('#bot-ui-container')) continue;
@@ -189,21 +226,20 @@ async function runBot() {
 
                         const isMatch = exactMatch ? elText === text : elText.includes(text);
                         if (isMatch) {
-                            // Don't mistake "spinning" for "spin" button
                             if (text === "spin" && elText.includes("spinning")) continue;
-                            // Ignore disabled/picked player cards completely
-                            if (elText.includes("(picked)")) continue;
 
                             const style = window.getComputedStyle(el);
                             const rect = el.getBoundingClientRect();
                             
                             if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
-                                if (rightSideOnly && (rect.left + (rect.width / 2) < screenMiddle)) continue;
+                                if (rightSideOnly) {
+                                    if (rect.left + (rect.width / 2) < screenMiddle) continue;
+                                    if (isRowDisabled(el)) continue; 
+                                }
 
-                                // Prevent clicking parent layers that are disabled
                                 if (el.parentElement) {
                                     const parentStyle = window.getComputedStyle(el.parentElement);
-                                    if (parentStyle.pointerEvents === 'none' || parseFloat(parentStyle.opacity) < 1) continue;
+                                    if (parentStyle.pointerEvents === 'none') continue;
                                 }
 
                                 triggerPixelClick(el);
@@ -214,13 +250,26 @@ async function runBot() {
                     return false;
                 }
 
-                // Custom Check for Target Players
                 function isAnyPlayerAvailable(playerList) {
                     const pageText = document.body.innerText.toLowerCase();
                     for (let player of playerList) {
                         if (pageText.includes(player.toLowerCase())) {
-                            // Verify they are on the right side (available) and not picked
                             if (smartClick(player, false, true)) return true;
+                        }
+                    }
+                    return false;
+                }
+
+                function clickPositionNumber(targetNumber) {
+                    const elements = Array.from(document.querySelectorAll('*'));
+                    for (let el of elements) {
+                        if (el.children.length > 0) continue;
+                        if (el.textContent.trim() === targetNumber.toString()) {
+                            let modal = el.closest('div');
+                            if (modal && window.getComputedStyle(modal).display !== 'none') {
+                                triggerPixelClick(el);
+                                return true;
+                            }
                         }
                     }
                     return false;
@@ -251,20 +300,12 @@ async function runBot() {
                             const style = window.getComputedStyle(el);
                             if (rect.width > 0 && rect.height > 0 && style.display !== 'none') {
                                 if (rect.left + (rect.width / 2) >= screenMiddle) {
-                                    
-                                    // Make absolutely sure row is not disabled
-                                    let disabled = false;
-                                    let parent = el;
-                                    for(let i=0; i<4; i++) {
-                                        if(!parent) break;
-                                        if((parent.textContent||'').toLowerCase().includes('(picked)')) disabled = true;
-                                        if(window.getComputedStyle(parent).pointerEvents === 'none') disabled = true;
-                                        parent = parent.parentElement;
-                                    }
-
-                                    if (!disabled && num > bestRating) {
-                                        bestRating = num;
-                                        bestNode = el;
+                                    if (!isRowDisabled(el) && num > bestRating) {
+                                        // 3-STRIKE BLACKLIST CHECK
+                                        if ((playerAttempts["rating_"+num] || 0) < 3) {
+                                            bestRating = num;
+                                            bestNode = el;
+                                        }
                                     }
                                 }
                             }
@@ -272,6 +313,7 @@ async function runBot() {
                     }
 
                     if (bestNode) {
+                        playerAttempts["rating_"+bestRating] = (playerAttempts["rating_"+bestRating] || 0) + 1;
                         triggerPixelClick(bestNode);
                         log(`Drafted Rating: ${bestRating}`);
                         lastPlayerDrafted = null;
@@ -294,15 +336,26 @@ async function runBot() {
                     reRollUsed = false;
                     lastPlayerDrafted = null;
                     isWaitingForRestart = false;
+                    playerAttempts = {};
+                    positionAttempts = {};
                 }
 
-                log("Bot injected. Universal Clicker + 501 Claimer active!");
+                log("Bot injected. Juggernaut Engine active!");
 
                 // ==========================================
-                // 6. MAIN AUTOMATION LOOP
+                // 6. MAIN AUTOMATION LOOP (400ms)
                 // ==========================================
                 setInterval(() => {
                     if (!isRunning || isWaitingForRestart || isTransitioning) return;
+
+                    // THE EMERGENCY RESUSCITATOR (8 Seconds of inactivity triggers a reload)
+                    idleLoops++;
+                    if (idleLoops > 20) {
+                        log("Emergency: Bot frozen. Force reloading...");
+                        isWaitingForRestart = true;
+                        location.reload();
+                        return;
+                    }
 
                     const pageText = document.body.innerText.toLowerCase();
                     const rawText = document.body.innerText;
@@ -362,18 +415,13 @@ async function runBot() {
                                 setTimeout(() => {
                                     smartClick("submit", false) || smartClick("post", false) || smartClick("enter", false);
                                     log("Score submitted. Reloading in 60s...");
-                                    
-                                    setTimeout(() => {
-                                        location.reload(); 
-                                    }, 60000);
+                                    setTimeout(() => { location.reload(); }, 60000);
                                 }, 1000);
                             }, 1500);
                         } else {
                             log("Loss detected. Reloading to restart...");
                             isWaitingForRestart = true; 
-                            setTimeout(() => {
-                                location.reload(); 
-                            }, 1500); // 1.5 seconds wait to clear memory properly
+                            setTimeout(() => { location.reload(); }, 1500); 
                         }
                         return;
                     }
@@ -384,11 +432,14 @@ async function runBot() {
 
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
-                                // Passes True to exactMatch so it only clicks the exact number "8"
+                                // 3-STRIKE BLACKLIST CHECK
+                                if ((positionAttempts[pos] || 0) >= 3) continue;
+
                                 if (smartClick(pos.toString(), true)) {
+                                    positionAttempts[pos] = (positionAttempts[pos] || 0) + 1;
                                     log(`Pos ${pos} selected for ${lastPlayerDrafted}`);
                                     clickedPosition = true;
-                                    uiPause(1000); // Popup needs time to vanish
+                                    uiPause(1000); 
                                     break;
                                 }
                             }
@@ -396,7 +447,10 @@ async function runBot() {
 
                         if (!clickedPosition) {
                             for (let i = 1; i <= 11; i++) {
+                                if ((positionAttempts[i] || 0) >= 3) continue;
+
                                 if (smartClick(i.toString(), true)) {
+                                    positionAttempts[i] = (positionAttempts[i] || 0) + 1;
                                     log(`Pos ${i} selected as fallback`);
                                     uiPause(1000);
                                     break;
@@ -410,6 +464,8 @@ async function runBot() {
                     if (smartClick("spin", true)) {
                         spinCount++;
                         reRollUsed = false;
+                        playerAttempts = {}; // Reset Blacklists on new spin
+                        positionAttempts = {};
                         log(`Spin #${spinCount} Initiated`);
                         uiPause(800);
                         return;
@@ -433,9 +489,10 @@ async function runBot() {
                             const optimalPlayersList = Object.keys(optimalPositions);
                             if (!isAnyPlayerAvailable(optimalPlayersList)) {
                                 log("No Optimal Player. Attempting RE-ROLL...");
-                                // SmartClick finds "re-roll" regardless of nested ⟳ symbols!
-                                if (smartClick("re-roll", false) || smartClick("reroll", false)) {
+                                if (aggressiveClick("⟳") || smartClick("re-roll", false) || smartClick("reroll", false)) {
                                     reRollUsed = true; 
+                                    playerAttempts = {}; // Reset Blacklists on new players
+                                    positionAttempts = {};
                                     uiPause(1000);
                                     return;
                                 }
@@ -448,7 +505,11 @@ async function runBot() {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
+                                // 3-STRIKE BLACKLIST CHECK
+                                if ((playerAttempts[playerName] || 0) >= 3) continue;
+
                                 if (optimalPositions[playerName] && smartClick(playerName, false, true)) {
+                                    playerAttempts[playerName] = (playerAttempts[playerName] || 0) + 1;
                                     log(`Drafted Rank ${i+1}: ${playerName}`);
                                     lastPlayerDrafted = playerName;
                                     uiPause(1000);
@@ -460,7 +521,10 @@ async function runBot() {
                         // --- OPTIMAL FALLBACK ---
                         const optimalPlayersList = Object.keys(optimalPositions);
                         for (let player of optimalPlayersList) {
+                            if ((playerAttempts[player] || 0) >= 3) continue;
+
                             if (smartClick(player, false, true)) {
+                                playerAttempts[player] = (playerAttempts[player] || 0) + 1;
                                 log(`Drafted Optimal: ${player}`);
                                 lastPlayerDrafted = player;
                                 uiPause(1000);
