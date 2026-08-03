@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v33.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v34.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v33.0 (Bulletproof Engine) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v34.0 (Spatial Isolation Engine) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -58,11 +58,10 @@ async function runBot() {
     });
 
     // ==========================================
-    // INJECTING BULLETPROOF TM LOGIC
+    // INJECTING SPATIALLY ISOLATED TM LOGIC
     // ==========================================
     await page.evaluateOnNewDocument(() => {
-        // PREVENT DUPLICATE IFRAME INJECTIONS
-        if (window.top !== window) return;
+        if (window.top !== window) return; // Prevent iframe duplicates
 
         window.addEventListener('load', () => {
             setTimeout(() => {
@@ -158,14 +157,14 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v33.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v34.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:170px; font-family:sans-serif;`;
                 document.body.appendChild(ui);
 
                 function triggerPixelClick(element) {
-                    idleLoops = 0; // Reset idle timer on click
+                    idleLoops = 0; 
                     const target = element.closest('button, [role="button"]') || element;
                     const rect = target.getBoundingClientRect();
                     const x = rect.left + (rect.width / 2);
@@ -190,7 +189,6 @@ async function runBot() {
                         if (parseFloat(style.opacity) < 0.85 || style.pointerEvents === 'none') return true;
                         if (style.filter && (style.filter.includes('grayscale') || style.filter.includes('contrast'))) return true;
                         if (node.classList && (node.classList.contains('disabled') || node.classList.contains('picked') || node.classList.contains('greyed'))) return true;
-                        if (node.getAttribute('disabled') !== null) return true;
 
                         node = node.parentElement;
                         depth++;
@@ -213,10 +211,11 @@ async function runBot() {
                     return false;
                 }
 
-                function smartClick(text, exactMatch = false, rightSideOnly = false) {
+                // STRICT RIGHT-SIDE CLICKER FOR PLAYERS
+                function smartClick(text, exactMatch = false, rightSideOnly = true) {
                     text = text.toLowerCase().trim();
                     const elements = Array.from(document.querySelectorAll('button, div, span, p, a, li'));
-                    const screenMiddle = window.innerWidth / 2;
+                    const rightSideBoundary = window.innerWidth * 0.45; // Must be in right 55% of screen
                     
                     for (let i = elements.length - 1; i >= 0; i--) {
                         const el = elements[i];
@@ -233,11 +232,46 @@ async function runBot() {
                             const rect = el.getBoundingClientRect();
                             
                             if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden') {
-                                if (rightSideOnly) {
-                                    if (rect.left + (rect.width / 2) < screenMiddle) continue;
-                                    if (isRowDisabled(el)) continue; 
-                                }
+                                // SPATIAL ISOLATION: Require element to be on right side
+                                if (rightSideOnly && (rect.left + (rect.width / 2) < rightSideBoundary)) continue;
+                                if (isRowDisabled(el)) continue; 
 
+                                triggerPixelClick(el);
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+
+                // ISOLATED POPUP MODAL CLICKER FOR BATTING POSITIONS
+                function clickPositionNumber(targetNumber) {
+                    // Find active position popup modal container
+                    const allDivs = Array.from(document.querySelectorAll('div, [role="dialog"]'));
+                    let modalContainer = null;
+
+                    for (let div of allDivs) {
+                        const text = (div.textContent || '').toLowerCase();
+                        if ((text.includes("choose a batting position") || text.includes("choose batting position")) && div.children.length > 0) {
+                            const style = window.getComputedStyle(div);
+                            if (style.display !== 'none' && style.visibility !== 'hidden') {
+                                modalContainer = div;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!modalContainer) return false;
+
+                    // Strictly click number inside modal container
+                    const modalElements = Array.from(modalContainer.querySelectorAll('button, div, span, a, p'));
+                    for (let i = modalElements.length - 1; i >= 0; i--) {
+                        const el = modalElements[i];
+                        const text = (el.textContent || '').trim();
+                        if (text === targetNumber.toString()) {
+                            const rect = el.getBoundingClientRect();
+                            const style = window.getComputedStyle(el);
+                            if (rect.width > 0 && rect.height > 0 && style.display !== 'none') {
                                 triggerPixelClick(el);
                                 return true;
                             }
@@ -252,21 +286,6 @@ async function runBot() {
                         if (blacklistedPlayers.has(player.toLowerCase())) continue;
                         if (pageText.includes(player.toLowerCase())) {
                             if (smartClick(player, false, true)) return true;
-                        }
-                    }
-                    return false;
-                }
-
-                function clickPositionNumber(targetNumber) {
-                    const elements = Array.from(document.querySelectorAll('*'));
-                    for (let el of elements) {
-                        if (el.children.length > 0) continue;
-                        if (el.textContent.trim() === targetNumber.toString()) {
-                            let modal = el.closest('div');
-                            if (modal && window.getComputedStyle(modal).display !== 'none') {
-                                triggerPixelClick(el);
-                                return true;
-                            }
                         }
                     }
                     return false;
@@ -287,7 +306,7 @@ async function runBot() {
                     const elements = Array.from(document.querySelectorAll('div, span'));
                     let bestNode = null;
                     let bestRating = -1;
-                    const screenMiddle = window.innerWidth / 2;
+                    const rightSideBoundary = window.innerWidth * 0.45;
 
                     for (let el of elements) {
                         const text = (el.textContent || '').trim();
@@ -296,7 +315,8 @@ async function runBot() {
                             const rect = el.getBoundingClientRect();
                             const style = window.getComputedStyle(el);
                             if (rect.width > 0 && rect.height > 0 && style.display !== 'none') {
-                                if (rect.left + (rect.width / 2) >= screenMiddle) {
+                                // Strictly right-side player cards only
+                                if (rect.left + (rect.width / 2) >= rightSideBoundary) {
                                     if (!isRowDisabled(el) && num > bestRating) {
                                         if (!blacklistedPlayers.has("rating_" + num)) {
                                             bestRating = num;
@@ -313,7 +333,7 @@ async function runBot() {
                         failedPlayerClicks[key] = (failedPlayerClicks[key] || 0) + 1;
                         if (failedPlayerClicks[key] >= 3) {
                             blacklistedPlayers.add(key);
-                            log(`Blacklisting rating ${bestRating}`);
+                            log(`Blacklisted rating ${bestRating}`);
                         }
 
                         triggerPixelClick(bestNode);
@@ -342,17 +362,16 @@ async function runBot() {
                     failedPlayerClicks = {};
                 }
 
-                log("Bot injected. Bulletproof Engine v33.0 active!");
+                log("Bot injected. Spatial Isolation v34.0 active!");
 
                 // ==========================================
-                // 6. MAIN AUTOMATION LOOP (400ms)
+                // MAIN AUTOMATION LOOP (400ms)
                 // ==========================================
                 setInterval(() => {
                     if (!isRunning || isWaitingForRestart || isTransitioning) return;
 
-                    // EMERGENCY RESUSCITATOR: 25 Seconds (62 loops) of total inactivity
                     idleLoops++;
-                    if (idleLoops > 62) {
+                    if (idleLoops > 62) { // 25s idle safety reload
                         log("Emergency: Bot idle > 25s. Force reloading...");
                         isWaitingForRestart = true;
                         location.reload();
@@ -366,18 +385,18 @@ async function runBot() {
                     if (pageText.includes("choose difficulty") || pageText.includes("unofficial fan draft game")) {
                         log("Starting New Draft...");
                         resetDraftState();
-                        smartClick("draft", true);
+                        smartClick("draft", true, false);
                         uiPause(800);
                         return;
                     }
 
                     // STEP 2: SKIP TO END & SIMULATE PHASE
-                    if (smartClick("skip to end", false)) {
+                    if (smartClick("skip to end", false, false)) {
                         log("Skipping to end...");
                         uiPause(800);
                         return;
                     }
-                    if (smartClick("simulate", false)) {
+                    if (smartClick("simulate", false, false)) {
                         log("Match simulating...");
                         uiPause(800);
                         return;
@@ -401,7 +420,7 @@ async function runBot() {
                             log("🏆 WIN/501+ SCORE! Claiming Spot...");
                             isWaitingForRestart = true;
                             
-                            smartClick("claim your spot", false);
+                            smartClick("claim your spot", false, false);
                             
                             setTimeout(() => {
                                 const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -415,7 +434,7 @@ async function runBot() {
                                 });
 
                                 setTimeout(() => {
-                                    smartClick("submit", false) || smartClick("post", false) || smartClick("enter", false);
+                                    smartClick("submit", false, false) || smartClick("post", false, false) || smartClick("enter", false, false);
                                     log("Score submitted. Reloading in 60s...");
                                     setTimeout(() => { location.reload(); }, 60000);
                                 }, 1000);
@@ -428,13 +447,13 @@ async function runBot() {
                         return;
                     }
 
-                    // STEP 4: BATTING POSITION POPUP
+                    // STEP 4: BATTING POSITION POPUP (ISOLATED MODAL CLICK)
                     if (pageText.includes("choose a batting position") || pageText.includes("choose batting position")) {
                         let clickedPosition = false;
 
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
-                                if (smartClick(pos.toString(), true)) {
+                                if (clickPositionNumber(pos)) {
                                     log(`Pos ${pos} selected for ${lastPlayerDrafted}`);
                                     clickedPosition = true;
                                     uiPause(1000); 
@@ -445,7 +464,7 @@ async function runBot() {
 
                         if (!clickedPosition) {
                             for (let i = 1; i <= 11; i++) {
-                                if (smartClick(i.toString(), true)) {
+                                if (clickPositionNumber(i)) {
                                     log(`Pos ${i} selected as fallback`);
                                     uiPause(1000);
                                     break;
@@ -456,13 +475,13 @@ async function runBot() {
                     }
 
                     // STEP 5: SPIN PHASE
-                    if (smartClick("spin", true)) {
+                    if (smartClick("spin", true, false)) {
                         spinCount++;
                         reRollUsed = false;
                         blacklistedPlayers.clear();
                         failedPlayerClicks = {};
                         log(`Spin #${spinCount} Initiated`);
-                        uiPause(3500); // 3.5s pause to allow slot wheel animation to complete!
+                        uiPause(3500); // Wait for wheel spin animation
                         return;
                     }
 
@@ -484,7 +503,7 @@ async function runBot() {
                             const optimalPlayersList = Object.keys(optimalPositions);
                             if (!isAnyPlayerAvailable(optimalPlayersList)) {
                                 log("No Optimal Player. Attempting RE-ROLL...");
-                                if (aggressiveClick("⟳") || smartClick("re-roll", false) || smartClick("reroll", false)) {
+                                if (aggressiveClick("⟳") || smartClick("re-roll", false, false) || smartClick("reroll", false, false)) {
                                     reRollUsed = true; 
                                     blacklistedPlayers.clear();
                                     failedPlayerClicks = {};
