@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v32.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v33.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v32.0 (The Juggernaut Engine) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v33.0 (Bulletproof Engine) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -58,9 +58,12 @@ async function runBot() {
     });
 
     // ==========================================
-    // INJECTING UNSTOPPABLE TM LOGIC
+    // INJECTING BULLETPROOF TM LOGIC
     // ==========================================
     await page.evaluateOnNewDocument(() => {
+        // PREVENT DUPLICATE IFRAME INJECTIONS
+        if (window.top !== window) return;
+
         window.addEventListener('load', () => {
             setTimeout(() => {
                 let isRunning = true;
@@ -70,10 +73,9 @@ async function runBot() {
                 let isWaitingForRestart = false;
                 let isTransitioning = false; 
 
-                // --- V32.0 UNSTOPPABLE STATE TRACKERS ---
                 let idleLoops = 0; 
-                let playerAttempts = {};
-                let positionAttempts = {};
+                let blacklistedPlayers = new Set();
+                let failedPlayerClicks = {};
 
                 function uiPause(ms) {
                     isTransitioning = true;
@@ -156,14 +158,14 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v32.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v33.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:170px; font-family:sans-serif;`;
                 document.body.appendChild(ui);
 
                 function triggerPixelClick(element) {
-                    idleLoops = 0; // RESET IDLE TIMER ON PHYSICAL CLICK
+                    idleLoops = 0; // Reset idle timer on click
                     const target = element.closest('button, [role="button"]') || element;
                     const rect = target.getBoundingClientRect();
                     const x = rect.left + (rect.width / 2);
@@ -176,7 +178,6 @@ async function runBot() {
                     return true;
                 }
 
-                // UPGRADED GREY-OUT DETECTION: Catches Grayscale CSS & Reduced Opacity
                 function isRowDisabled(element) {
                     let node = element;
                     let depth = 0;
@@ -186,7 +187,7 @@ async function runBot() {
                         if (text.includes("(picked)")) return true;
 
                         const style = window.getComputedStyle(node);
-                        if (parseFloat(style.opacity) < 0.9 || style.pointerEvents === 'none') return true;
+                        if (parseFloat(style.opacity) < 0.85 || style.pointerEvents === 'none') return true;
                         if (style.filter && (style.filter.includes('grayscale') || style.filter.includes('contrast'))) return true;
                         if (node.classList && (node.classList.contains('disabled') || node.classList.contains('picked') || node.classList.contains('greyed'))) return true;
                         if (node.getAttribute('disabled') !== null) return true;
@@ -231,15 +232,10 @@ async function runBot() {
                             const style = window.getComputedStyle(el);
                             const rect = el.getBoundingClientRect();
                             
-                            if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+                            if (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden') {
                                 if (rightSideOnly) {
                                     if (rect.left + (rect.width / 2) < screenMiddle) continue;
                                     if (isRowDisabled(el)) continue; 
-                                }
-
-                                if (el.parentElement) {
-                                    const parentStyle = window.getComputedStyle(el.parentElement);
-                                    if (parentStyle.pointerEvents === 'none') continue;
                                 }
 
                                 triggerPixelClick(el);
@@ -253,6 +249,7 @@ async function runBot() {
                 function isAnyPlayerAvailable(playerList) {
                     const pageText = document.body.innerText.toLowerCase();
                     for (let player of playerList) {
+                        if (blacklistedPlayers.has(player.toLowerCase())) continue;
                         if (pageText.includes(player.toLowerCase())) {
                             if (smartClick(player, false, true)) return true;
                         }
@@ -301,8 +298,7 @@ async function runBot() {
                             if (rect.width > 0 && rect.height > 0 && style.display !== 'none') {
                                 if (rect.left + (rect.width / 2) >= screenMiddle) {
                                     if (!isRowDisabled(el) && num > bestRating) {
-                                        // 3-STRIKE BLACKLIST CHECK
-                                        if ((playerAttempts["rating_"+num] || 0) < 3) {
+                                        if (!blacklistedPlayers.has("rating_" + num)) {
                                             bestRating = num;
                                             bestNode = el;
                                         }
@@ -313,7 +309,13 @@ async function runBot() {
                     }
 
                     if (bestNode) {
-                        playerAttempts["rating_"+bestRating] = (playerAttempts["rating_"+bestRating] || 0) + 1;
+                        const key = "rating_" + bestRating;
+                        failedPlayerClicks[key] = (failedPlayerClicks[key] || 0) + 1;
+                        if (failedPlayerClicks[key] >= 3) {
+                            blacklistedPlayers.add(key);
+                            log(`Blacklisting rating ${bestRating}`);
+                        }
+
                         triggerPixelClick(bestNode);
                         log(`Drafted Rating: ${bestRating}`);
                         lastPlayerDrafted = null;
@@ -336,11 +338,11 @@ async function runBot() {
                     reRollUsed = false;
                     lastPlayerDrafted = null;
                     isWaitingForRestart = false;
-                    playerAttempts = {};
-                    positionAttempts = {};
+                    blacklistedPlayers.clear();
+                    failedPlayerClicks = {};
                 }
 
-                log("Bot injected. Juggernaut Engine active!");
+                log("Bot injected. Bulletproof Engine v33.0 active!");
 
                 // ==========================================
                 // 6. MAIN AUTOMATION LOOP (400ms)
@@ -348,10 +350,10 @@ async function runBot() {
                 setInterval(() => {
                     if (!isRunning || isWaitingForRestart || isTransitioning) return;
 
-                    // THE EMERGENCY RESUSCITATOR (8 Seconds of inactivity triggers a reload)
+                    // EMERGENCY RESUSCITATOR: 25 Seconds (62 loops) of total inactivity
                     idleLoops++;
-                    if (idleLoops > 20) {
-                        log("Emergency: Bot frozen. Force reloading...");
+                    if (idleLoops > 62) {
+                        log("Emergency: Bot idle > 25s. Force reloading...");
                         isWaitingForRestart = true;
                         location.reload();
                         return;
@@ -381,7 +383,7 @@ async function runBot() {
                         return;
                     }
 
-                    // STEP 3: RESTART / END OF MATCH CHECK (WITH 501 CLAIMER)
+                    // STEP 3: RESTART / END OF MATCH CHECK
                     if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("claim your spot") || pageText.includes("play again") || pageText.includes("draft again")) {
                         
                         const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
@@ -432,11 +434,7 @@ async function runBot() {
 
                         if (lastPlayerDrafted && optimalPositions[lastPlayerDrafted]) {
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
-                                // 3-STRIKE BLACKLIST CHECK
-                                if ((positionAttempts[pos] || 0) >= 3) continue;
-
                                 if (smartClick(pos.toString(), true)) {
-                                    positionAttempts[pos] = (positionAttempts[pos] || 0) + 1;
                                     log(`Pos ${pos} selected for ${lastPlayerDrafted}`);
                                     clickedPosition = true;
                                     uiPause(1000); 
@@ -447,10 +445,7 @@ async function runBot() {
 
                         if (!clickedPosition) {
                             for (let i = 1; i <= 11; i++) {
-                                if ((positionAttempts[i] || 0) >= 3) continue;
-
                                 if (smartClick(i.toString(), true)) {
-                                    positionAttempts[i] = (positionAttempts[i] || 0) + 1;
                                     log(`Pos ${i} selected as fallback`);
                                     uiPause(1000);
                                     break;
@@ -464,10 +459,10 @@ async function runBot() {
                     if (smartClick("spin", true)) {
                         spinCount++;
                         reRollUsed = false;
-                        playerAttempts = {}; // Reset Blacklists on new spin
-                        positionAttempts = {};
+                        blacklistedPlayers.clear();
+                        failedPlayerClicks = {};
                         log(`Spin #${spinCount} Initiated`);
-                        uiPause(800);
+                        uiPause(3500); // 3.5s pause to allow slot wheel animation to complete!
                         return;
                     }
 
@@ -491,9 +486,9 @@ async function runBot() {
                                 log("No Optimal Player. Attempting RE-ROLL...");
                                 if (aggressiveClick("⟳") || smartClick("re-roll", false) || smartClick("reroll", false)) {
                                     reRollUsed = true; 
-                                    playerAttempts = {}; // Reset Blacklists on new players
-                                    positionAttempts = {};
-                                    uiPause(1000);
+                                    blacklistedPlayers.clear();
+                                    failedPlayerClicks = {};
+                                    uiPause(1200);
                                     return;
                                 }
                             }
@@ -505,11 +500,15 @@ async function runBot() {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
-                                // 3-STRIKE BLACKLIST CHECK
-                                if ((playerAttempts[playerName] || 0) >= 3) continue;
+                                if (blacklistedPlayers.has(playerName.toLowerCase())) continue;
 
                                 if (optimalPositions[playerName] && smartClick(playerName, false, true)) {
-                                    playerAttempts[playerName] = (playerAttempts[playerName] || 0) + 1;
+                                    failedPlayerClicks[playerName] = (failedPlayerClicks[playerName] || 0) + 1;
+                                    if (failedPlayerClicks[playerName] >= 3) {
+                                        blacklistedPlayers.add(playerName.toLowerCase());
+                                        log(`Greyed-out detected: Blacklisted ${playerName}`);
+                                    }
+
                                     log(`Drafted Rank ${i+1}: ${playerName}`);
                                     lastPlayerDrafted = playerName;
                                     uiPause(1000);
@@ -521,10 +520,15 @@ async function runBot() {
                         // --- OPTIMAL FALLBACK ---
                         const optimalPlayersList = Object.keys(optimalPositions);
                         for (let player of optimalPlayersList) {
-                            if ((playerAttempts[player] || 0) >= 3) continue;
+                            if (blacklistedPlayers.has(player.toLowerCase())) continue;
 
                             if (smartClick(player, false, true)) {
-                                playerAttempts[player] = (playerAttempts[player] || 0) + 1;
+                                failedPlayerClicks[player] = (failedPlayerClicks[player] || 0) + 1;
+                                if (failedPlayerClicks[player] >= 3) {
+                                    blacklistedPlayers.add(player.toLowerCase());
+                                    log(`Greyed-out detected: Blacklisted ${player}`);
+                                }
+
                                 log(`Drafted Optimal: ${player}`);
                                 lastPlayerDrafted = player;
                                 uiPause(1000);
