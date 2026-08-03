@@ -10,7 +10,7 @@ const http = require('http');
 const PORT = process.env.PORT || 10000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('500-0 Cloud Bot v29.0 is running 24/7!');
+    res.end('500-0 Cloud Bot v30.0 is running 24/7!');
 });
 
 server.on('error', (err) => {
@@ -25,7 +25,7 @@ server.listen(PORT, () => {
 // MAIN PUPPETEER BOT RUNNER
 // =============================================================
 async function runBot() {
-    console.log("⚡ Starting Ultimate Drafter v29.0 (User's TM Logic + Reload Reset) on Render...");
+    console.log("⚡ Starting Ultimate Drafter v30.0 (The Ultimate Merger) on Render...");
 
     const browser = await puppeteer.launch({
         headless: false, // Xvfb virtual screen
@@ -58,7 +58,7 @@ async function runBot() {
     });
 
     // ==========================================
-    // INJECTING USER'S EXACT TM LOGIC 
+    // INJECTING USER'S EXACT TM LOGIC + 501 CLAIMER
     // ==========================================
     await page.evaluateOnNewDocument(() => {
         window.addEventListener('load', () => {
@@ -68,6 +68,13 @@ async function runBot() {
                 let reRollUsed = false;
                 let lastPlayerDrafted = null;
                 let isWaitingForRestart = false;
+                let isTransitioning = false; 
+
+                // Pauses the loop briefly to allow website animations to finish
+                function uiPause(ms) {
+                    isTransitioning = true;
+                    setTimeout(() => isTransitioning = false, ms);
+                }
 
                 // 1. FIRST SPIN TARGET PLAYERS (RELOAD CONDITION DATABASE)
                 const firstSpinTargets = [
@@ -116,7 +123,7 @@ async function runBot() {
                     "west indies_2020s": ["Nicholas Pooran", "Evin Lewis", "Shimron Hetmyer", "Rovman Powell", "Jason Holder"]
                 };
 
-                // 3. OPTIMAL BATTING POSITIONS (USER'S SEPARATED CATEGORIES)
+                // 3. OPTIMAL BATTING POSITIONS
                 const optimalPositions = {
                     "Rohit Sharma": [1, 2], "Sachin Tendulkar": [1, 2, 4, 3], "Travis Head": [1, 2],
                     "Adam Gilchrist": [1, 2, 3], "Chris Gayle": [1, 2], "Babar Azam": [1, 3],
@@ -140,7 +147,7 @@ async function runBot() {
                 const ui = document.createElement('div');
                 ui.id = 'bot-ui-container';
                 ui.innerHTML = `
-                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v29.0</div>
+                    <div style="font-weight: bold; font-size: 13px; color: #ffeb3b; margin-bottom: 5px;">⚡ Infinite Bot v30.0</div>
                     <div id="bot-action" style="font-size: 11px; margin-bottom: 8px; color: white;">Initializing...</div>
                 `;
                 ui.style.cssText = `position:fixed; bottom:20px; right:20px; z-index:999999; background:rgba(0,0,0,0.9); padding:10px; border-radius:5px; width:170px; font-family:sans-serif;`;
@@ -150,15 +157,6 @@ async function runBot() {
                     const actionEl = document.getElementById('bot-action');
                     if (actionEl) actionEl.textContent = actionText;
                     console.log(`[BOT] ${actionText}`); 
-                }
-
-                function isElementOnTop(element) {
-                    const rect = element.getBoundingClientRect();
-                    if (rect.width === 0 || rect.height === 0) return false;
-                    const x = rect.left + (rect.width / 2);
-                    const y = rect.top + (rect.height / 2);
-                    const topElement = document.elementFromPoint(x, y);
-                    return topElement && (topElement === element || element.contains(topElement) || topElement.contains(element));
                 }
 
                 function triggerPixelClick(element) {
@@ -189,39 +187,15 @@ async function runBot() {
                     return false;
                 }
 
-                function createSafeTreeWalker(root) {
-                    return document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-                        acceptNode: function(node) {
-                            if (node.parentElement && node.parentElement.closest('#bot-ui-container')) {
-                                return NodeFilter.FILTER_REJECT;
-                            }
-                            return NodeFilter.FILTER_ACCEPT;
-                        }
-                    }, false);
-                }
-
-                function findAndClick(targetText, exact = true, requireRightSideOnly = false) {
-                    targetText = targetText.toLowerCase().trim();
-                    const walker = createSafeTreeWalker(document.body);
-                    let node;
-                    const screenMiddle = window.innerWidth / 2;
-
-                    while ((node = walker.nextNode())) {
-                        const text = node.nodeValue.trim().toLowerCase();
-                        if (!text) continue;
-
-                        if ((exact && text === targetText) || (!exact && text.includes(targetText))) {
-                            const parent = node.parentElement;
-                            if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
-                                const rect = parent.getBoundingClientRect();
-                                const elementCenterX = rect.left + (rect.width / 2);
-
-                                if (requireRightSideOnly) {
-                                    if (elementCenterX < screenMiddle) continue;
-                                    if (isRowDisabled(parent)) continue;
-                                }
-
-                                triggerPixelClick(parent);
+                // AGGRESSIVE CLICKER: Directly scans all HTML nodes for precise text or symbols (Perfect for the ⟳ Re-Roll Button)
+                function aggressiveClick(textTarget) {
+                    const elements = Array.from(document.querySelectorAll('button, div, span, a'));
+                    for (let el of elements) {
+                        const text = (el.textContent || '').toLowerCase().trim();
+                        if (text.includes(textTarget.toLowerCase()) && el.children.length === 0) {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none') {
+                                triggerPixelClick(el);
                                 return true;
                             }
                         }
@@ -229,23 +203,48 @@ async function runBot() {
                     return false;
                 }
 
-                // USER'S CUSTOM HELPER: Check if specific players are on screen
-                function isAnyPlayerAvailable(playerList) {
-                    const walker = createSafeTreeWalker(document.body);
-                    let node;
+                function findAndClick(targetText, exact = true, requireRightSideOnly = false) {
+                    targetText = targetText.toLowerCase().trim();
+                    const elements = Array.from(document.querySelectorAll('*'));
                     const screenMiddle = window.innerWidth / 2;
 
-                    while ((node = walker.nextNode())) {
-                        const text = node.nodeValue.trim().toLowerCase();
+                    for (let el of elements) {
+                        if (el.children.length > 0) continue; 
+                        const text = (el.textContent || '').toLowerCase().trim();
+                        if (!text) continue;
+
+                        if ((exact && text === targetText) || (!exact && text.includes(targetText))) {
+                            if (targetText === "spin" && text.includes("spinning")) continue;
+
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
+                                if (requireRightSideOnly) {
+                                    if (rect.left + (rect.width / 2) < screenMiddle) continue;
+                                    if (isRowDisabled(el)) continue;
+                                }
+                                triggerPixelClick(el);
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+
+                function isAnyPlayerAvailable(playerList) {
+                    const elements = Array.from(document.querySelectorAll('*'));
+                    const screenMiddle = window.innerWidth / 2;
+
+                    for (let el of elements) {
+                        if (el.children.length > 0) continue;
+                        const text = (el.textContent || '').toLowerCase().trim();
                         if (!text) continue;
 
                         for (let player of playerList) {
                             const target = player.trim().toLowerCase();
                             if (text === target || text.includes(target)) {
-                                const parent = node.parentElement;
-                                if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
-                                    const rect = parent.getBoundingClientRect();
-                                    if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(parent)) {
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
+                                    if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(el)) {
                                         return true;
                                     }
                                 }
@@ -256,26 +255,13 @@ async function runBot() {
                 }
 
                 function clickPositionNumber(targetNumber) {
-                    const walker = createSafeTreeWalker(document.body);
-                    let node;
-                    let modal = null;
-
-                    while ((node = walker.nextNode())) {
-                        if (node.nodeValue.toLowerCase().includes("choose a batting position") || node.nodeValue.toLowerCase().includes("choose batting position")) {
-                            modal = node.parentElement;
-                            for (let i = 0; i < 5; i++) { if (modal.parentElement && modal.tagName !== 'BODY') modal = modal.parentElement; }
-                            break;
-                        }
-                    }
-
-                    if (!modal) return false;
-
-                    const innerWalker = createSafeTreeWalker(modal);
-                    while ((node = innerWalker.nextNode())) {
-                        if (node.nodeValue.trim() === targetNumber.toString()) {
-                            const parent = node.parentElement;
-                            if (isElementOnTop(parent)) {
-                                triggerPixelClick(parent);
+                    const elements = Array.from(document.querySelectorAll('*'));
+                    for (let el of elements) {
+                        if (el.children.length > 0) continue;
+                        if (el.textContent.trim() === targetNumber.toString()) {
+                            let modal = el.closest('div');
+                            if (modal && window.getComputedStyle(modal).display !== 'none') {
+                                triggerPixelClick(el);
                                 return true;
                             }
                         }
@@ -295,23 +281,22 @@ async function runBot() {
                 }
 
                 function draftHighestAvailableRating() {
-                    const walker = createSafeTreeWalker(document.body);
-                    let node;
+                    const elements = Array.from(document.querySelectorAll('*'));
                     let bestNode = null;
                     let bestRating = -1;
                     const screenMiddle = window.innerWidth / 2;
 
-                    while ((node = walker.nextNode())) {
-                        const text = node.nodeValue.trim();
+                    for (let el of elements) {
+                        if (el.children.length > 0) continue;
+                        const text = (el.textContent || '').trim();
                         const num = parseInt(text);
-                        if (!isNaN(num) && num >= 50 && num <= 99 && text === num.toString()) {
-                            const parent = node.parentElement;
-                            if (window.getComputedStyle(parent).display !== 'none' && isElementOnTop(parent)) {
-                                const rect = parent.getBoundingClientRect();
-                                if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(parent)) {
+                        if (!isNaN(num) && num >= 0 && num <= 99 && text === num.toString()) {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && window.getComputedStyle(el).display !== 'none') {
+                                if (rect.left + (rect.width / 2) >= screenMiddle && !isRowDisabled(el)) {
                                     if (num > bestRating) {
                                         bestRating = num;
-                                        bestNode = parent;
+                                        bestNode = el;
                                     }
                                 }
                             }
@@ -331,9 +316,7 @@ async function runBot() {
                     const pageText = document.body.innerText.toLowerCase();
                     for (let key of Object.keys(rankedDatabase)) {
                         const parts = key.split('_');
-                        const team = parts[0];
-                        const era = parts[1];
-                        if (pageText.includes(team) && pageText.includes(era)) {
+                        if (pageText.includes(parts[0]) && pageText.includes(parts[1])) {
                             return key;
                         }
                     }
@@ -347,13 +330,13 @@ async function runBot() {
                     isWaitingForRestart = false;
                 }
 
-                log("Bot injected. User TM Logic active!");
+                log("Bot injected. User TM Logic + 501 Claimer active!");
 
                 // ==========================================
                 // 6. MAIN AUTOMATION LOOP
                 // ==========================================
                 setInterval(() => {
-                    if (!isRunning || isWaitingForRestart) return;
+                    if (!isRunning || isWaitingForRestart || isTransitioning) return;
 
                     const pageText = document.body.innerText.toLowerCase();
                     const rawText = document.body.innerText;
@@ -363,24 +346,26 @@ async function runBot() {
                         log("Starting New Draft...");
                         resetDraftState();
                         findAndClick("draft", true);
+                        uiPause(800);
                         return;
                     }
 
                     // STEP 2: SKIP TO END & SIMULATE PHASE
                     if (findAndClick("skip to end", false)) {
                         log("Skipping to end...");
+                        uiPause(800);
                         return;
                     }
 
                     if (findAndClick("simulate", false)) {
                         log("Match simulating...");
+                        uiPause(800);
                         return;
                     }
 
-                    // STEP 3: RESTART / END OF MATCH CHECK (WITH RELOAD MASTER FIX)
-                    if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("draft again") || pageText.includes("play again")) {
+                    // STEP 3: RESTART / END OF MATCH CHECK (INCLUDES 501+ CLAIM LOGIC)
+                    if (pageText.includes("game over") || pageText.includes("final score") || pageText.includes("claim your spot") || pageText.includes("play again")) {
                         
-                        // Extract Scorecard before reload
                         const scoreMatch = rawText.match(/\b([5-9]\d{2}|\d{4,})\s*\/\s*\d+\b/);
                         const oversMatch = rawText.match(/\b\d{1,2}\.\d OVERS\b/i);
                         let matchReport = "";
@@ -393,18 +378,37 @@ async function runBot() {
                         const wonMatch = checkWinCondition();
 
                         if (wonMatch) {
-                            log("🏆 WIN/501+ SCORE! Waiting 60s...");
+                            log("🏆 WIN/501+ SCORE! Claiming Spot...");
                             isWaitingForRestart = true;
-                            findAndClick("claim your spot", false); // Attempt to claim
+                            
+                            aggressiveClick("claim your spot");
+                            
                             setTimeout(() => {
-                                log("60s completed. Reloading site to loop...");
-                                location.reload(); // Master reset
-                            }, 60000);
+                                const randomNum = Math.floor(1000 + Math.random() * 9000);
+                                const username = "KUNJAN" + randomNum;
+                                
+                                const inputs = document.querySelectorAll('input');
+                                inputs.forEach(input => {
+                                    input.value = username;
+                                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                setTimeout(() => {
+                                    aggressiveClick("submit") || aggressiveClick("post") || aggressiveClick("enter");
+                                    log("Score submitted. Reloading in 60s...");
+                                    
+                                    setTimeout(() => {
+                                        location.reload(); 
+                                    }, 60000);
+
+                                }, 1000);
+                            }, 1500);
                         } else {
-                            log("Loss detected. Force Reloading to restart...");
-                            isWaitingForRestart = true; // Pause loop
+                            log("Loss detected. Reloading to restart...");
+                            isWaitingForRestart = true; 
                             setTimeout(() => {
-                                location.reload(); // Master reset
+                                location.reload(); 
                             }, 1000);
                         }
                         return;
@@ -419,6 +423,7 @@ async function runBot() {
                             for (let pos of optimalPositions[lastPlayerDrafted]) {
                                 if (clickPositionNumber(pos)) {
                                     clickedPosition = true;
+                                    uiPause(600);
                                     break;
                                 }
                             }
@@ -427,7 +432,10 @@ async function runBot() {
                         if (!clickedPosition) {
                             log("Selecting next available position...");
                             for (let i = 1; i <= 11; i++) {
-                                if (clickPositionNumber(i)) break;
+                                if (clickPositionNumber(i)) {
+                                    uiPause(600);
+                                    break;
+                                }
                             }
                         }
                         return;
@@ -438,18 +446,20 @@ async function runBot() {
                         spinCount++;
                         reRollUsed = false;
                         log(`Spin #${spinCount} Initiated`);
+                        uiPause(800);
                         return;
                     }
 
                     // STEP 6: DRAFTING / RE-ROLL / RELOAD LOGIC
                     if (pageText.includes("pow") || pageText.includes("bat") || pageText.includes("bwl")) {
 
-                        // --- FIRST SPIN RULE: Must find target player from firstSpinTargets, else Reload ---
+                        // --- FIRST SPIN RULE: Target Player Check ---
                         if (spinCount === 1) {
                             const foundTargetOnFirstSpin = isAnyPlayerAvailable(firstSpinTargets);
                             if (!foundTargetOnFirstSpin) {
                                 log("Spin 1: Target player not found! Reloading...");
-                                location.reload(); // Master Reset
+                                isWaitingForRestart = true;
+                                location.reload();
                                 return;
                             }
                         }
@@ -461,50 +471,52 @@ async function runBot() {
 
                             if (!foundOptimalPlayer) {
                                 log("No Optimal Player found. Attempting RE-ROLL...");
-                                const rerollClicked = findAndClick("re-roll", false) ||
-                                                      findAndClick("reroll", false) ||
-                                                      findAndClick("re - roll", false) ||
-                                                      findAndClick("roll", false);
+                                // FIXED: Aggressively checks for Unicode symbol and text
+                                const rerollClicked = aggressiveClick("⟳") || aggressiveClick("re-roll") || aggressiveClick("reroll");
+                                
                                 if (rerollClicked) {
                                     reRollUsed = true; 
+                                    uiPause(800);
                                     return;
                                 }
                             }
                         }
 
-                        // --- PLAYER SELECTION (ONLY OPTIMAL PLAYERS FROM RANKED DATABASE FIRST) ---
+                        // --- PLAYER SELECTION ---
                         const teamKey = detectCurrentTeamEraKey();
                         if (teamKey && rankedDatabase[teamKey]) {
                             const rankedList = rankedDatabase[teamKey];
                             for (let i = 0; i < rankedList.length; i++) {
                                 const playerName = rankedList[i];
-                                // STRICT CHECK: Only draft if player exists in optimalPositions!
                                 if (optimalPositions[playerName] && findAndClick(playerName, true, true)) {
                                     log(`Drafted Rank ${i+1}: ${playerName}`);
                                     lastPlayerDrafted = playerName;
+                                    uiPause(800);
                                     return;
                                 }
                             }
                         }
 
-                        // --- OPTIMAL FALLBACK: Draft any available optimal player on card ---
+                        // --- OPTIMAL FALLBACK ---
                         const optimalPlayersList = Object.keys(optimalPositions);
                         for (let player of optimalPlayersList) {
                             if (findAndClick(player, true, true)) {
                                 log(`Drafted Optimal: ${player}`);
                                 lastPlayerDrafted = player;
+                                uiPause(800);
                                 return;
                             }
                         }
 
-                        // --- ULTIMATE FALLBACK: Highest Available Rating ---
+                        // --- ULTIMATE FALLBACK: Highest Rating ---
                         log("Drafting by highest rating fallback...");
                         if (draftHighestAvailableRating()) {
+                            uiPause(800);
                             return;
                         }
                     }
 
-                }, 1000); // 1000ms loop
+                }, 400); // HIGH SPEED LOOP
 
             }, 2000); 
         });
